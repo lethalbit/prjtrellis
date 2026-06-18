@@ -57,21 +57,33 @@ def main(args):
                 for pkg in package_indicies:
                     package_data[pkg] = {}
             elif found_header:
-                if splitline[1][0] != "P" or splitline[1].startswith("PROGRAM"):
+                if splitline[1].startswith("REFCLK") and chip.info.family.startswith("ECP5"):
+                    if splitline[1].endswith("0"):
+                        bel = (42, 71, "")
+                    if splitline[1].endswith("1"):
+                        bel = (69, 71, "")
+                    bank = int(splitline[2])
+                    metadata[bel] = bank, "REFCLK_IN", "-"
+                    for i in range(len(package_indicies)):
+                        if splitline[pkg_index_start+i] == "-":
+                            continue
+                        package_data[package_indicies[i]][splitline[pkg_index_start+i]] = bel
+                elif splitline[1][0] != "P" or splitline[1].startswith("PROGRAM"):
                     continue
-                bel = get_bel(splitline[1], chip.info)
-                bank = int(splitline[2])
-                function = splitline[3]
-                dqs = splitline[6]
-                if chip.info.family.startswith("MachXO"):
-                    io_grouping = splitline[7]
-                    metadata[bel] = bank, function, dqs, io_grouping
                 else:
-                    metadata[bel] = bank, function, dqs
-                for i in range(len(package_indicies)):
-                    if splitline[pkg_index_start+i] == "-":
-                        continue
-                    package_data[package_indicies[i]][splitline[pkg_index_start+i]] = bel
+                    bel = get_bel(splitline[1], chip.info)
+                    bank = int(splitline[2])
+                    function = splitline[3]
+                    dqs = splitline[6]
+                    if chip.info.family.startswith("MachXO"):
+                        io_grouping = splitline[7]
+                        metadata[bel] = bank, function, dqs, io_grouping
+                    else:
+                        metadata[bel] = bank, function, dqs
+                    for i in range(len(package_indicies)):
+                        if splitline[pkg_index_start+i] == "-":
+                            continue
+                        package_data[package_indicies[i]][splitline[pkg_index_start+i]] = bel
     json_data = {"packages": {}, "pio_metadata": []}
     for pkg, pins in package_data.items():
         json_data["packages"][pkg] = {}
