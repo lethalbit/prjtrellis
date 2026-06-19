@@ -15,7 +15,7 @@ design top
    ${comment}       program "MODE:EXTREFB "
    ${comment}               "EXTREFB${program}";
    ${comment}    }
-   ${comment}    site EXTREF0;
+   ${comment}    site ${loc};
    ${comment} }
 
 
