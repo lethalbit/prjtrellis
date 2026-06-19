@@ -57,13 +57,19 @@ def main(args):
                 for pkg in package_indicies:
                     package_data[pkg] = {}
             elif found_header:
-                if splitline[1].startswith("REFCLK") and chip.info.family.startswith("ECP5"):
-                    if splitline[1].endswith("0"):
-                        bel = (42, 71, "")
-                    if splitline[1].endswith("1"):
-                        bel = (69, 71, "")
+                if (splitline[1].startswith("REFCLK") or splitline[1].startswith("HD")) and chip.info.family.startswith("ECP5"):
                     bank = int(splitline[2])
-                    metadata[bel] = bank, "REFCLK_IN", "-"
+                    io_name, dcu_chan = splitline[1].split("_")
+
+                    if dcu_chan.startswith("D0"):
+                        function = 'DCU0_IO'
+                        bel = (42, 71, "")
+                    elif dcu_chan.startswith("D1"):
+                        function = 'DCU1_IO'
+                        bel = (69, 71, "")
+
+                    metadata[bel] = bank, function, "-"
+
                     for i in range(len(package_indicies)):
                         if splitline[pkg_index_start+i] == "-":
                             continue
