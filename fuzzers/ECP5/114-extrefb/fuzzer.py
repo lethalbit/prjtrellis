@@ -7,6 +7,7 @@ import interconnect
 jobs = [
     {
         "loc": "EXTREF0",
+        "bel": (71, 42),
         "tiles": [
             "MIB_R71C42:DCU0", "MIB_R71C43:DCU1", "MIB_R71C44:DCU2", "MIB_R71C45:DCU3",
 			"MIB_R71C46:DCU4", "MIB_R71C47:DCU5", "MIB_R71C48:DCU6", "MIB_R71C49:DCU7",
@@ -36,6 +37,7 @@ jobs = [
     },
     {
         "loc": "EXTREF1",
+        "bel": (71, 69),
         "tiles": [
             "MIB_R71C69:DCU0", "MIB_R71C70:DCU1", "MIB_R71C71:DCU2", "MIB_R71C72:DCU3",
 			"MIB_R71C73:DCU4", "MIB_R71C74:DCU5", "MIB_R71C75:DCU6", "MIB_R71C76:DCU7",
@@ -84,6 +86,9 @@ def tobinstr(x, size):
 
 def main():
     pytrellis.load_database("../../../database")
+
+    def nn_filter(net, netnames):
+         return "DCU" in net or "PCS" in net or "EXTREF" in net or "REFCLK" in net
 
     def fuzz_job(job: dict[str, str | list[str]]):
         job_name = f"{job['loc']}ROUTING"
@@ -152,10 +157,21 @@ def main():
                 empty_bitfile
             )
 
-        cfg.ncl = "extref_routing.ncl"
-        interconnect.fuzz_interconnect_with_netnames(
-            cfg, job["nets"], bidir=True
-        )
+        if job.get("bidir", False):
+            cfg.ncl = "extref0.ncl" if job["loc"] == "EXTREF0" else "extref1.ncl"
+
+            interconnect.fuzz_interconnect(
+                config=cfg,
+                location=job["bel"],
+                netname_predicate=nn_filter,
+                netname_filter_union=False,
+                func_cib=True
+            )
+        else:
+            cfg.ncl = "extref_routing.ncl"
+            interconnect.fuzz_interconnect_with_netnames(
+                cfg, job["nets"], bidir=True
+            )
 
     # XXX(aki):
     # The two other jobs here are for finding the TO/FROM connections between the EXTREFs
@@ -163,13 +179,15 @@ def main():
     all_jobs = [
         *jobs,
         {
-            "loc": "EXTREF0",
+            "loc": jobs[0]["loc"],
+            "bel": jobs[0]["bel"],
             "tiles": jobs[0]["tiles"] + jobs[1]["tiles"],
             "nets": jobs[0]["nets"] + jobs[1]["nets"],
             "bidir": True
         },
         {
-            "loc": "EXTREF1",
+            "loc": jobs[1]["loc"],
+            "bel": jobs[1]["bel"],
             "tiles": jobs[0]["tiles"] + jobs[1]["tiles"],
             "nets": jobs[0]["nets"] + jobs[1]["nets"],
             "bidir": True
